@@ -604,12 +604,12 @@
 
       /* video ends around middle of first row */
       .video-gap{
-        min-height:92px;
+        min-height:clamp(88px, 13vw, 110px);
       }
 
       .cards-stage{
         padding:0 10px 34px;
-        margin-top:70px;
+        margin-top:clamp(60px, 10vw, 78px);
         transform:none;
         transition:none;
       }
@@ -776,7 +776,7 @@
       }
 
       .cards-stage{
-        margin-top:-66px;
+        margin-top:clamp(42px, 8vw, 58px);
       }
 
       .flip-wrapper{

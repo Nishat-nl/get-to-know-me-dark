@@ -884,15 +884,16 @@
 
     @media (max-width: 600px) {
       .hero {
-        padding: 96px 18px 88px;
+        padding: 96px 18px clamp(118px, 16svh, 142px);
       }
 
       .hero-stats {
-        bottom: 72px;
-        left: 22%;
-        transform: translateX(-22%);
+        bottom: clamp(62px, 10svh, 86px);
+        left: 25%;
+        right: auto;
+        transform: translateX(-25%);
         grid-template-columns: repeat(2, minmax(94px, 1fr));
-        width: 220px;
+        width: min(220px, calc(100% - 88px));
         border-radius: 22px;
         overflow: hidden;
         backdrop-filter: blur(10px);
@@ -1033,7 +1034,6 @@
     @media (max-width: 420px) {
       .hero-stats {
         width: min(214px, calc(100% - 78px));
-        bottom: 26px;
       }
 
       .pill-number {

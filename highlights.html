@@ -123,12 +123,97 @@
     }
 
     @media (max-width: 768px) {
-      .card-grid { grid-template-columns: repeat(2, 1fr); }
-      .rarity-legend { margin: 0 20px 30px; }
+      .card-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 10px;
+      }
+
+      .achievement-card {
+        padding: 16px 10px;
+        border-radius: 14px;
+      }
+
+      .achievement-icon {
+        font-size: 1.55rem;
+        margin-bottom: 8px;
+      }
+
+      .rarity-label {
+        font-size: 0.42rem;
+        letter-spacing: 0.12em;
+        margin-bottom: 4px;
+      }
+
+      .achievement-title {
+        font-size: 0.72rem;
+        line-height: 1.15;
+        margin-bottom: 4px;
+      }
+
+      .achievement-sub {
+        font-size: 0.42rem;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+      }
+
+      .achievement-desc {
+        font-size: 0.58rem;
+        line-height: 1.35;
+      }
+
+      .rarity-legend {
+        margin: 0 20px 22px;
+        gap: 10px;
+      }
+
+      .rarity-dot {
+        font-size: 0.46rem;
+        letter-spacing: 0.08em;
+        gap: 4px;
+      }
+
+      .rarity-dot::before {
+        width: 6px;
+        height: 6px;
+      }
     }
+
     @media (max-width: 480px) {
-      .card-grid { grid-template-columns: 1fr; }
+      .card-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 8px;
+      }
+
+      .achievement-card {
+        padding: 14px 8px;
+        border-radius: 12px;
+      }
+
+      .achievement-icon {
+        font-size: 1.3rem;
+        margin-bottom: 6px;
+      }
+
+      .rarity-label {
+        font-size: 0.38rem;
+        letter-spacing: 0.1em;
+      }
+
+      .achievement-title {
+        font-size: 0.64rem;
+      }
+
+      .achievement-sub {
+        font-size: 0.36rem;
+        margin-bottom: 5px;
+      }
+
+      .achievement-desc {
+        font-size: 0.52rem;
+        line-height: 1.28;
+      }
     }
+
   </style>
 </head>
 <body>

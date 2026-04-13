@@ -17,6 +17,7 @@
       --fo:'Oswald',sans-serif;
       --fm:'Share Tech Mono',monospace;
     }
+
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     html,body{overflow-x:hidden;}
     body{background:var(--bg);color:var(--white);font-family:var(--fb);}
@@ -26,7 +27,7 @@
     ::-webkit-scrollbar{width:5px;}
     ::-webkit-scrollbar-thumb{background:#1e2240;}
 
-    /* VIDEO BACKGROUND */
+    /* DESKTOP / DEFAULT VIDEO BACKGROUND */
     .video-bg-wrap{
       position:fixed;
       inset:0;
@@ -59,6 +60,11 @@
         radial-gradient(ellipse 60% 60% at 50% -5%,rgba(0,112,224,0.06) 0%,transparent 55%),
         radial-gradient(ellipse 40% 40% at 90% 80%,rgba(0,194,255,0.025) 0%,transparent 50%),
         radial-gradient(ellipse 30% 30% at 10% 90%,rgba(26,58,107,0.04) 0%,transparent 50%);
+    }
+
+    .mobile-bg-blur,
+    .mobile-hero-video-wrap{
+      display:none;
     }
 
     .bg-main{
@@ -139,7 +145,7 @@
     .banner-topbar{
       display:flex;align-items:center;justify-content:space-between;
       padding:20px 32px 0;
-      background:linear-gradient(90deg,rgba(0,70,160,0.18) 0%,rgba(0,0,0,0) 60%);
+      background:linear-gradient(90deg,rgba(0,70,160,0.02) 0%,rgba(0,0,0,0) 60%);
       position:relative;
       z-index:2;
     }
@@ -184,8 +190,6 @@
     .sb-sep{color:var(--grey);}
     .sb-time{font-family:var(--fm);font-size:.5rem;color:var(--accent);letter-spacing:.2em;margin-top:3px;}
 
-
-    /* visible middle strip of video */
     .video-gap{
       flex:1;
       min-height:150px;
@@ -193,7 +197,6 @@
       z-index:1;
     }
 
-    /* lower cards initially */
     .cards-stage{
       position:relative;
       z-index:2;
@@ -201,7 +204,6 @@
       transition:transform 1.15s cubic-bezier(.2,.8,.2,1);
       padding:16px 0 80px;
     }
-
     .cards-stage::before{
       content:'';
       position:absolute;
@@ -215,12 +217,8 @@
       border:1px solid rgba(0,194,255,.08);
       pointer-events:none;
     }
+    body.intro-finished .cards-stage{transform:translateY(0);}
 
-    body.intro-finished .cards-stage{
-      transform:translateY(0);
-    }
-
-    /* Section header */
     .section-hd{
       position:relative;
       z-index:1;
@@ -235,6 +233,7 @@
       background:linear-gradient(135deg,var(--accent2),var(--accent));
       display:flex;align-items:center;justify-content:center;font-size:.9rem;
       box-shadow:0 0 20px rgba(0,207,255,.16);
+      flex-shrink:0;
     }
     .section-hd-title{
       font-family:var(--fd);font-size:1.4rem;font-weight:800;
@@ -244,9 +243,9 @@
     .section-hd-count{
       font-family:var(--fm);font-size:.58rem;color:var(--accent);
       border:1px solid rgba(0,194,255,0.25);border-radius:4px;padding:4px 10px;letter-spacing:.15em;
+      flex-shrink:0;
     }
 
-    /* PLAYER GRID */
     .player-grid{
       position:relative;
       z-index:1;
@@ -257,7 +256,6 @@
       padding:0 32px 0;
     }
 
-    /* PLAYER CARD */
     .player-card{
       width:200px;
       flex-shrink:0;
@@ -265,7 +263,6 @@
       position:relative;
       isolation:isolate;
     }
-
     .player-card::before{
       content:'';
       position:absolute;
@@ -283,22 +280,19 @@
       filter:blur(14px);
       opacity:1;
       pointer-events:none;
+      transition:transform .35s ease, filter .35s ease, opacity .35s ease;
     }
-
     .player-card:hover::before{
       opacity:1;
       transform:scale(1.03);
       filter:blur(20px);
     }
-
     .player-card:hover .pcard-inner{transform:translateY(-8px);}
-
     .pcard-inner{
       transition:transform .35s cubic-bezier(.2,.8,.2,1);
       position:relative;
       z-index:1;
     }
-
     .pcard-wrap{
       position:relative;
       width:100%;
@@ -331,7 +325,6 @@
     }
 
     .pcontent{position:absolute;inset:0;z-index:2;}
-
     .pc-ovr{
       position:absolute;top:10px;left:10px;z-index:5;text-align:center;
       background:rgba(0,0,0,0.55);border-radius:4px;padding:4px 6px;backdrop-filter:blur(6px);
@@ -344,12 +337,10 @@
       font-family:var(--fo);font-size:.5rem;font-weight:600;letter-spacing:.08em;
       color:var(--accent);text-transform:uppercase;margin-top:-1px;
     }
-
     .pc-icon{
       position:absolute;top:10px;right:10px;z-index:5;font-size:1.3rem;
       filter:drop-shadow(0 0 6px rgba(0,194,255,0.5));
     }
-
     .pc-img{position:absolute;top:0;left:0;right:0;bottom:35%;overflow:hidden;}
     .pc-img img{
       width:100%;height:100%;object-fit:cover;object-position:top center;
@@ -390,7 +381,6 @@
       transform:scaleX(0);transform-origin:left;transition:transform .4s .1s ease;
     }
     .player-card:hover .pc-rating-bar{transform:scaleX(1);}
-
     .card-hint{
       text-align:center;margin-top:8px;
       font-family:var(--fo);font-size:.53rem;color:var(--grey);letter-spacing:.15em;text-transform:uppercase;
@@ -433,13 +423,17 @@
       background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
       color:var(--off);font-size:.9rem;display:flex;align-items:center;justify-content:center;cursor:pointer;
       transition:all .2s;
+      flex-shrink:0;
     }
     .sm-close:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,194,255,0.1);}
 
     .sm-body{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(255,255,255,0.05);}
-    @media(max-width:700px){.sm-body{grid-template-columns:1fr;}}
     .sm-left{padding:24px;}
     .sm-right{padding:24px;border-left:1px solid rgba(255,255,255,0.05);}
+
+    .sm-top-row{display:block;}
+    .sm-intro-copy{min-width:0;}
+    .sm-mobile-photos{display:none;}
 
     .sm-sport-label{
       font-family:var(--fm);font-size:.56rem;color:var(--accent);letter-spacing:.25em;
@@ -448,6 +442,7 @@
     .sm-sport-name{
       font-family:var(--fd);font-size:clamp(2rem,4vw,3.2rem);font-weight:900;
       text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;color:var(--white);
+      line-height:.95;
     }
     .sm-sport-pos{
       font-family:var(--fo);font-size:.7rem;color:var(--accent);letter-spacing:.2em;
@@ -518,30 +513,346 @@
     .lb-close{position:absolute;top:20px;right:20px;font-size:2rem;color:rgba(255,255,255,.4);cursor:pointer;transition:color .2s;}
     .lb-close:hover{color:var(--white);}
 
+    /* TABLET / SMALL DESKTOP */
     @media(max-width:900px){
       .nav-links{display:none;}
       .nav-links.open{
-        display:flex;flex-direction:column;position:fixed;top:54px;left:0;right:0;
-        background:rgba(4,5,10,0.98);padding:16px;
-        border-bottom:1px solid rgba(0,194,255,0.12);gap:4px;
-      .cards-stage::before{
-        left:10px;
-        right:10px;
-      }
+        display:flex;
+        flex-direction:column;
+        position:fixed;
+        top:54px;
+        left:0;
+        right:0;
+        background:rgba(4,5,10,0.98);
+        padding:16px;
+        border-bottom:1px solid rgba(0,194,255,0.12);
+        gap:4px;
       }
       .menu-toggle{display:flex;}
-      .btb-right{display:none;}
-      .banner-topbar{padding:16px 16px 0;}
+      .btb-right{
+        display:block;
+      }
+      .banner-topbar{
+        background:transparent;padding:16px 16px 0;}
+      .banner-topbar::before{
+        display:none;
+      }
       .video-gap{min-height:110px;}
       .cards-stage{transform:translateY(80px);padding-bottom:60px;}
+      .cards-stage::before{left:10px;right:10px;}
       .section-hd{padding:20px 16px 12px;}
       .player-grid{padding:0 16px 0;gap:14px;}
       .player-card{width:160px;}
     }
-    @media(max-width:480px){
-      .player-card{width:calc(50% - 8px);}
-      .video-gap{min-height:80px;}
-      .cards-stage{transform:translateY(60px);}
+
+    /* MOBILE ONLY FIXES */
+    @media(max-width:700px){
+      body{background:#04070e;}
+
+      .video-bg-wrap{display:none;}
+
+      .scoreboard{
+        width:auto;
+        max-width:230px;
+        border-radius:6px;
+        transform:scale(.82);
+        transform-origin:top right;
+      }
+
+      .sb-team{
+        flex:1;
+        padding:6px 8px;
+        min-width:66px;
+      }
+
+      .sb-team-label{
+        font-size:.33rem;
+        letter-spacing:.14em;
+        margin-bottom:2px;
+      }
+
+      .sb-team-name{
+        font-size:.7rem;
+        line-height:1.05;
+      }
+
+      .sb-score-wrap{
+        padding:6px 8px;
+      }
+
+      .sb-score{
+        font-size:1.45rem;
+        gap:4px;
+      }
+
+      .sb-time{
+        font-size:.33rem;
+        letter-spacing:.13em;
+        margin-top:2px;
+      }
+      
+      .mobile-bg-blur{
+        display:block;
+        position:fixed;
+        inset:0;
+        z-index:0;
+        overflow:hidden;
+        pointer-events:none;
+        background:#000;
+      }
+      .mobile-bg-blur video{
+        width:100%;
+        height:100%;
+        object-fit:cover;
+        object-position:center center;
+        transform:scale(1.12);
+        filter:blur(16px) brightness(.33) saturate(.95);
+      }
+      .mobile-bg-blur::after{
+        content:'';
+        position:absolute;
+        inset:0;
+        background:
+          linear-gradient(to bottom, rgba(2,4,10,.06) 0%, rgba(2,4,10,.10) 38%, rgba(2,4,10,.20) 100%),
+          radial-gradient(circle at 50% 0%, rgba(0,194,255,.03), transparent 48%);
+      }
+
+      .pitch-deco{opacity:.035;}
+      .page{padding-top:54px;}
+
+      .sports-stage{
+        position:relative;
+        display:block;
+        min-height:100vh;
+      }
+
+      .banner-topbar{
+        position:absolute;
+        top:10px;
+        left:12px;
+        right:12px;
+        display:grid;
+        grid-template-columns:minmax(0,1fr) auto;
+        grid-template-areas:
+          "left right"
+          "sub  right";
+        column-gap:10px;
+        align-items:start;
+        padding:0;
+        background:transparent;
+        z-index:4;
+      }
+
+      .banner-topbar::before{
+        width:3px;
+      }
+
+      .banner-topbar::after{
+        display:none;
+      }
+
+      .btb-left{
+        grid-area:left;
+        min-width:0;
+      }
+
+      .btb-mode{
+        font-size:.48rem;
+        letter-spacing:.22em;
+      }
+
+      .btb-title{
+        font-size:clamp(2rem,12vw,3rem);
+        line-height:.88;
+      }
+
+      .btb-title .hi{
+        display:block;
+      }
+
+      .btb-sub{
+        grid-area:sub;
+        font-size:.72rem;
+        max-width:190px;
+        line-height:1.25;
+        margin-top:6px;
+      }
+
+      .mobile-hero-video-wrap{
+        display:block;
+        position:relative;
+        z-index:1;
+        width:100%;
+        height:min(38vh, 300px);
+        margin-top:0;
+        overflow:hidden;
+      }
+      .mobile-hero-video{
+        width:100%;
+        height:100%;
+        object-fit:cover;
+        object-position:center center;
+        display:block;
+      }
+      .mobile-hero-video-wrap::after{
+        content:'';
+        position:absolute;
+        inset:0;
+        background:
+          linear-gradient(to bottom, rgba(4,7,14,.01) 0%, rgba(4,7,14,.03) 58%, rgba(4,7,14,.12) 100%),
+          linear-gradient(to top, rgba(4,7,14,.05) 0%, transparent 38%);
+        pointer-events:none;
+      }
+
+      .video-gap{display:none;}
+
+      .cards-stage{
+        transform:none;
+        margin-top:-22px;
+        padding:0 0 28px;
+      }
+      body.intro-finished .cards-stage{transform:none;}
+      .cards-stage::before{
+        top:0;
+        left:6px;
+        right:6px;
+        bottom:0;
+        border-radius:0;
+        background:linear-gradient(to bottom, rgba(6,10,18,.44), rgba(5,8,15,.68));
+        border:1px solid rgba(0,194,255,.10);
+      }
+
+      .section-hd{
+        padding:14px 14px 10px;
+        gap:10px;
+        align-items:flex-end;
+      }
+      .section-hd-left{
+        gap:10px;
+        min-width:0;
+      }
+      .section-hd-icon{
+        width:28px;
+        height:28px;
+        font-size:.82rem;
+      }
+      .section-hd-title{
+        font-size:1.08rem;
+        line-height:1;
+      }
+      .section-hd-sub{
+        font-size:.42rem;
+        letter-spacing:.11em;
+        white-space:nowrap;
+      }
+      .section-hd-count{
+        padding:4px 7px;
+        font-size:.48rem;
+        letter-spacing:.12em;
+      }
+
+      .player-grid{
+        padding:0 14px 0;
+        gap:12px;
+        justify-content:space-between;
+      }
+      .player-card{
+        width:calc(50% - 6px);
+      }
+      .player-card::before{
+        top:6px;
+        left:6px;
+        right:6px;
+        bottom:28px;
+        filter:blur(11px);
+      }
+      .pc-ovr{top:8px;left:8px;padding:3px 5px;}
+      .pc-ovr .ovr-num{font-size:1.7rem;}
+      .pc-ovr .ovr-pos{font-size:.42rem;}
+      .pc-icon{top:8px;right:8px;font-size:1rem;}
+      .pc-bottom{padding:8px 8px 9px;}
+      .pc-name{font-size:.92rem;margin-bottom:5px;}
+      .pc-stats{gap:3px;}
+      .pc-stat{min-width:24px;padding:3px 4px;}
+      .pc-stat-v{font-size:.78rem;}
+      .pc-stat-l{font-size:.32rem;}
+      .card-hint{font-size:.44rem;letter-spacing:.11em;margin-top:6px;}
+
+      .sport-modal{padding:10px 8px;}
+      .sm-panel{border-radius:10px;}
+      .sm-header{
+        padding:12px 14px;
+        align-items:flex-start;
+        gap:10px;
+      }
+      .sm-header-left{
+        gap:8px;
+        min-width:0;
+        flex-wrap:wrap;
+      }
+      .sm-header-tag{font-size:1.2rem;line-height:1;}
+      .sm-header-badge{font-size:.46rem;padding:3px 7px;letter-spacing:.11em;}
+      .sm-close{width:30px;height:30px;}
+
+      .sm-body{grid-template-columns:1fr;}
+      .sm-left{padding:14px;}
+      .sm-right{display:none;}
+
+      .sm-top-row{
+        display:grid;
+        grid-template-columns:minmax(0,1fr) 108px;
+        gap:12px;
+        align-items:start;
+      }
+      .sm-mobile-photos{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:6px;
+        align-self:start;
+      }
+      .sm-mobile-photos img{
+        width:100%;
+        aspect-ratio:1/1.12;
+        object-fit:cover;
+        border-radius:6px;
+        border:1px solid rgba(0,194,255,.14);
+        cursor:pointer;
+      }
+      .sm-sport-label{font-size:.5rem;letter-spacing:.18em;}
+      .sm-sport-name{font-size:2.4rem;line-height:.88;}
+      .sm-sport-pos{font-size:.58rem;letter-spacing:.16em;margin-bottom:10px;}
+      .fav-block{padding:12px;margin-bottom:12px;}
+      .fav-name{font-size:1.2rem;}
+      .fav-info{font-size:.78rem;line-height:1.65;}
+      .sm-divider{margin-bottom:10px;}
+      .sm-divider-label{font-size:.5rem;letter-spacing:.15em;}
+      .stat-row{gap:7px;margin-bottom:8px;}
+      .stat-v{font-size:.92rem;min-width:28px;}
+      .stat-l{font-size:.5rem;min-width:62px;}
+      .sm-memory{font-size:.8rem;line-height:1.6;}
+      .sm-gallery{padding:14px;}
+      .gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+    }
+
+    @media(max-width:420px){
+      .site-logo{font-size:1rem;}
+      .live-indicator{font-size:.42rem;letter-spacing:.16em;}
+      .banner-topbar{
+        background:transparent;padding:10px 10px 0;}
+      .btb-title{font-size:1.95rem;}
+      .btb-sub{font-size:.68rem;max-width:250px;}
+      .mobile-hero-video-wrap{height:min(35vh, 250px);}
+      .cards-stage{margin-top:-18px;}
+      .section-hd{padding:12px 12px 10px;}
+      .section-hd-title{font-size:1rem;}
+      .section-hd-sub{font-size:.38rem;}
+      .section-hd-count{font-size:.44rem;padding:3px 6px;}
+      .player-grid{padding:0 12px 0;gap:10px;}
+      .player-card{width:calc(50% - 5px);}
+      .pc-name{font-size:.84rem;}
+      .pc-ovr .ovr-num{font-size:1.5rem;}
+      .sm-top-row{grid-template-columns:minmax(0,1fr) 92px;gap:10px;}
+      .sm-sport-name{font-size:2rem;}
     }
   </style>
 </head>
@@ -552,6 +863,12 @@
     <source src="videos/sports-bg.mp4" type="video/mp4">
   </video>
   <div class="video-overlay"></div>
+</div>
+
+<div class="mobile-bg-blur" aria-hidden="true">
+  <video autoplay muted loop playsinline preload="auto">
+    <source src="videos/sports-bg.mp4" type="video/mp4">
+  </video>
 </div>
 
 <div class="bg-main"></div>
@@ -587,7 +904,7 @@
       <div class="btb-left">
         <div class="btb-mode">MODE 02 · MATCH DAY</div>
         <div class="btb-title">PLAYER <span class="hi">SELECT</span></div>
-        <div class="btb-sub">Sports that I play. View the card. Know my field.</div>
+        <div class="btb-sub">Sports that I play. Know my field.</div>
       </div>
       <div class="btb-right">
         <div class="scoreboard">
@@ -609,6 +926,11 @@
       </div>
     </div>
 
+    <div class="mobile-hero-video-wrap" aria-hidden="true">
+      <video class="mobile-hero-video" autoplay muted loop playsinline preload="auto">
+        <source src="videos/sports-bg.mp4" type="video/mp4">
+      </video>
+    </div>
 
     <div class="video-gap"></div>
 
@@ -654,7 +976,6 @@
 
 <script src="db.js"></script>
 <script>
-/* Match clock */
 (function(){
   const clock=document.getElementById('match-time');
   let sec=2700;
@@ -665,7 +986,6 @@
   },1000);
 })();
 
-/* Intro video behavior */
 const sportsVideo = document.getElementById('sports-video');
 let introDone = false;
 
@@ -685,11 +1005,20 @@ setTimeout(() => {
   if(!introDone) finishIntro();
 }, 9000);
 
-const grid=document.getElementById('player-grid');
-const ICONS={football:'⚽',soccer:'⚽',basketball:'🏀',tennis:'🎾',running:'🏃',cricket:'🏏',swimming:'🏊',boxing:'🥊',golf:'⛳',baseball:'⚾',volleyball:'🏐'};
-function getIcon(n){
-  const k=Object.keys(ICONS).find(k=>n.toLowerCase().includes(k));
-  return ICONS[k]||'🏆';
+const grid = document.getElementById('player-grid');
+const ICONS = {
+  football:'⚽', soccer:'⚽', basketball:'🏀', tennis:'🎾', running:'🏃', cricket:'🏏',
+  swimming:'🏊', boxing:'🥊', golf:'⛳', baseball:'⚾', volleyball:'🏐'
+};
+
+function getIcon(name){
+  const lower = String(name || '').toLowerCase();
+  const match = Object.keys(ICONS).find(key => lower.includes(key));
+  return ICONS[match] || '🏆';
+}
+
+function escapeAttr(value){
+  return String(value).replace(/'/g, "&#39;");
 }
 
 function buildSports(items){
@@ -733,68 +1062,100 @@ function buildSports(items){
   });
 }
 
-function openModal(sport){
-  document.getElementById('sm-header-name').textContent=sport.name.toUpperCase();
-  document.getElementById('sm-header-badge').textContent=(sport.subtitle||'ATHLETE').toUpperCase();
+function renderPhotoGrid(photos, className='fav-photos-grid'){
+  if(photos.length >= 2){
+    return `
+      <div class="${className}">
+        ${photos.map(p=>`<img src="${p}" alt="player" loading="lazy" onclick="event.stopPropagation();openLightbox('${escapeAttr(p)}')"/>`).join('')}
+      </div>
+    `;
+  }
+  if(photos.length === 1){
+    return `<img class="fav-photo-single" src="${photos[0]}" alt="player" loading="lazy" onclick="event.stopPropagation();openLightbox('${escapeAttr(photos[0])}')"/>`;
+  }
+  return '';
+}
 
-  const fp=sport.favPlayer||{};
-  document.getElementById('sm-left').innerHTML=`
-    <div class="sm-sport-label">Sport Profile</div>
-    <div class="sm-sport-name">${sport.name}</div>
-    <div class="sm-sport-pos">${sport.subtitle||''}</div>
-    ${fp.name?`
+function renderMobileTopPhotos(photos){
+  if(!photos.length) return '';
+  return `
+    <div class="sm-mobile-photos">
+      ${photos.slice(0,2).map(p=>`<img src="${p}" alt="player" loading="lazy" onclick="event.stopPropagation();openLightbox('${escapeAttr(p)}')"/>`).join('')}
+    </div>
+  `;
+}
+
+function openModal(sport){
+  document.getElementById('sm-header-name').textContent = String(sport.name || '—').toUpperCase();
+  document.getElementById('sm-header-badge').textContent = String(sport.subtitle || 'ATHLETE').toUpperCase();
+
+  const fp = sport.favPlayer || {};
+  const fpPhotos = (fp.photos || []).slice(0,4);
+
+  document.getElementById('sm-left').innerHTML = `
+    <div class="sm-top-row">
+      <div class="sm-intro-copy">
+        <div class="sm-sport-label">Sport Profile</div>
+        <div class="sm-sport-name">${sport.name || ''}</div>
+        <div class="sm-sport-pos">${sport.subtitle || ''}</div>
+      </div>
+      ${renderMobileTopPhotos(fpPhotos)}
+    </div>
+
+    ${fp.name ? `
       <div class="sm-divider"><span class="sm-divider-label">Favourite Player</span></div>
       <div class="fav-block">
         <div class="fav-name">${fp.name}</div>
-        <div class="fav-info">${fp.info||''}</div>
+        <div class="fav-info">${fp.info || ''}</div>
       </div>
-    `:''}
-    ${(sport.stats||[]).length?`
+    ` : ''}
+
+    ${(sport.stats || []).length ? `
       <div class="sm-divider"><span class="sm-divider-label">Stat Sheet</span></div>
-      ${sport.stats.map(s=>`
+      ${(sport.stats || []).map(s=>`
         <div class="stat-row">
           <div class="stat-v">${s.value}</div>
           <div class="stat-l">${s.label}</div>
           <div class="stat-t"><div class="stat-f" data-w="${s.value}"></div></div>
         </div>
       `).join('')}
-    `:''}
-    ${sport.memories?`<div class="sm-memory">"${sport.memories}"</div>`:''}
+    ` : ''}
+
+    ${sport.memories ? `<div class="sm-memory">"${sport.memories}"</div>` : ''}
   `;
 
-  const fpPhotos=(fp.photos||[]).slice(0,4);
-  document.getElementById('sm-right').innerHTML=`
+  document.getElementById('sm-right').innerHTML = fpPhotos.length ? `
     <div class="sm-divider"><span class="sm-divider-label">Favourite Player</span></div>
-    ${fpPhotos.length>=2?`
-      <div class="fav-photos-grid">
-        ${fpPhotos.map(p=>`<img src="${p}" alt="player" loading="lazy" onclick="openLightbox('${p}')"/>`).join('')}
-      </div>
-    `:fpPhotos.length===1?`
-      <img class="fav-photo-single" src="${fpPhotos[0]}" alt="" loading="lazy" onclick="openLightbox('${fpPhotos[0]}')"/>
-    `:`<div style="color:rgba(255,255,255,.15);font-family:var(--fm);font-size:.6rem;padding:20px;letter-spacing:.1em;">No player photos yet.</div>`}
-  `;
+    ${renderPhotoGrid(fpPhotos)}
+  ` : `<div style="color:rgba(255,255,255,.15);font-family:var(--fm);font-size:.6rem;padding:20px;letter-spacing:.1em;">No player photos yet.</div>`;
 
   const photos=(sport.photos||[]).slice(0,10);
-  document.getElementById('sm-gallery').innerHTML=photos.length?`
+  document.getElementById('sm-gallery').innerHTML = photos.length ? `
     <div class="sm-divider" style="padding:0 0 12px;"><span class="sm-divider-label">Match Gallery</span></div>
     <div class="gallery-grid">
-      ${photos.map(p=>`<img src="${p}" alt="" loading="lazy" onclick="openLightbox('${p}')"/>`).join('')}
+      ${photos.map(p=>`<img src="${p}" alt="gallery" loading="lazy" onclick="event.stopPropagation();openLightbox('${escapeAttr(p)}')"/>`).join('')}
     </div>
-  `:'';
+  ` : '';
 
   document.getElementById('sport-modal').classList.add('open');
   document.body.style.overflow='hidden';
-  setTimeout(()=>{document.querySelectorAll('.stat-f[data-w]').forEach(b=>b.style.width=b.dataset.w+'%');},120);
+  setTimeout(()=>{
+    document.querySelectorAll('.stat-f[data-w]').forEach(bar=>{
+      bar.style.width = `${bar.dataset.w}%`;
+    });
+  },120);
 }
 
 function closeModal(){
   document.getElementById('sport-modal').classList.remove('open');
   document.body.style.overflow='';
 }
+
 function openLightbox(src){
-  document.getElementById('lb-img').src=src;
+  document.getElementById('lb-img').src = src;
   document.getElementById('lightbox').classList.add('open');
 }
+
 function closeLightbox(){
   document.getElementById('lightbox').classList.remove('open');
 }
@@ -802,6 +1163,11 @@ function closeLightbox(){
 document.getElementById('sport-modal').addEventListener('click',e=>{
   if(e.target===e.currentTarget) closeModal();
 });
+
+document.getElementById('lightbox').addEventListener('click',e=>{
+  if(e.target===e.currentTarget) closeLightbox();
+});
+
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     closeModal();

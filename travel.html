@@ -883,10 +883,221 @@
     }
 
     @media (max-width: 600px) {
-      .dest-grid { grid-template-columns: 1fr; }
-      .hero-stats { gap: 0; }
       .hero {
-        padding-bottom: 120px;
+        padding: 96px 18px 88px;
+      }
+
+      .hero-stats {
+        bottom: 72px;
+        left: 22%;
+        transform: translateX(-22%);
+        grid-template-columns: repeat(2, minmax(94px, 1fr));
+        width: 220px;
+        border-radius: 22px;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        justify-content: center;
+      }
+
+      .hero-stat-pill {
+        padding: 10px 10px 9px;
+        border-right: 1px solid rgba(255,255,255,0.14);
+      }
+
+      .hero-stat-pill:nth-child(3) {
+        display: none;
+      }
+
+      .hero-stat-pill:nth-child(2) {
+        border-right: none;
+      }
+
+      .pill-number {
+        font-size: 1.1rem;
+      }
+
+      .pill-label {
+        font-size: 0.5rem;
+        letter-spacing: 0.16em;
+      }
+
+      .scroll-hint {
+        display: none;
+      }
+
+      .section-intro-wrap {
+        padding: 0 18px 18px;
+        margin-top: -56px;
+      }
+
+      .section-intro {
+        padding: 22px 18px 26px;
+        border-radius: 24px;
+        align-items: flex-start;
+      }
+
+      .section-title {
+        font-size: clamp(1.9rem, 9vw, 2.5rem);
+        line-height: 1.02;
+      }
+
+      .section-desc {
+        font-size: 0.98rem;
+        max-width: none;
+      }
+
+      .filter-row {
+        gap: 8px;
+      }
+
+      .filter-btn {
+        font-size: 0.62rem;
+        padding: 7px 14px;
+      }
+
+      .dest-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding: 0 18px 70px;
+        margin-top: -2px;
+      }
+
+      .dest-card {
+        border-radius: 14px;
+      }
+
+      .dest-img-wrap {
+        aspect-ratio: 3 / 4;
+      }
+
+      .dest-country-badge {
+        top: 8px;
+        left: 8px;
+        padding: 4px 8px;
+        font-size: 0.42rem;
+        letter-spacing: 0.08em;
+        max-width: calc(100% - 16px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .dest-revisit-badge {
+        top: 8px;
+        right: 8px;
+        padding: 4px 8px;
+        font-size: 0.4rem;
+        letter-spacing: 0.06em;
+      }
+
+      .dest-year-chip {
+        bottom: 8px;
+        right: 8px;
+        font-size: 0.58rem;
+      }
+
+      .dest-body {
+        padding: 10px 10px 12px;
+      }
+
+      .dest-place {
+        font-size: 0.92rem;
+        margin-bottom: 2px;
+      }
+
+      .dest-meta {
+        font-size: 0.52rem;
+        margin-bottom: 8px;
+      }
+
+      .dest-tags {
+        gap: 4px;
+      }
+
+      .dest-tag {
+        font-size: 0.44rem;
+        padding: 3px 7px;
+        letter-spacing: 0.04em;
+      }
+
+      .dest-arrow {
+        width: 24px;
+        height: 24px;
+        right: 10px;
+        bottom: 10px;
+        font-size: 0.62rem;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .hero-stats {
+        width: min(214px, calc(100% - 78px));
+        bottom: 26px;
+      }
+
+      .pill-number {
+        font-size: 1rem;
+      }
+
+      .pill-label {
+        font-size: 0.47rem;
+      }
+
+      .section-intro-wrap {
+        padding: 0 12px 14px;
+        margin-top: -66px;
+      }
+
+      .section-intro {
+        padding: 20px 16px 24px;
+        border-radius: 22px;
+      }
+
+      .section-label {
+        font-size: 0.56rem;
+        letter-spacing: 0.22em;
+      }
+
+      .section-title {
+        font-size: 1.7rem;
+      }
+
+      .section-desc {
+        font-size: 0.92rem;
+      }
+
+      .filter-btn {
+        font-size: 0.58rem;
+        padding: 7px 12px;
+      }
+
+      .dest-grid {
+        gap: 8px;
+        padding: 0 12px 64px;
+      }
+
+      .dest-body {
+        padding: 8px 8px 10px;
+      }
+
+      .dest-place {
+        font-size: 0.8rem;
+      }
+
+      .dest-meta {
+        font-size: 0.48rem;
+        margin-bottom: 6px;
+      }
+
+      .dest-tag {
+        font-size: 0.4rem;
+        padding: 2px 6px;
+      }
+
+      .dest-country-badge,
+      .dest-revisit-badge {
+        font-size: 0.38rem;
       }
     }
   </style>

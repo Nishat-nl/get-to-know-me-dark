@@ -1327,9 +1327,21 @@
     }
   });
 
-  allItems = DB.getTravel();
-  buildStats(allItems);
-  buildTravel(allItems);
+  async function initTravel(){
+    try{
+      allItems = await DB.getTravel();
+      buildStats(allItems);
+      buildTravel(allItems);
+    }catch(err){
+      console.error(err);
+      allItems = [];
+      buildStats(allItems);
+      buildTravel(allItems);
+      document.getElementById('dest-grid').innerHTML = '<div style="color:rgba(255,255,255,.4);padding:40px 20px;grid-column:1/-1;text-align:center;">Failed to load travel data.</div>';
+    }
+  }
+
+  initTravel();
 </script>
 </body>
 </html>

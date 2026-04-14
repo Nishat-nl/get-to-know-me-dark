@@ -203,65 +203,72 @@
 <script src="scripts.js"></script>
 <script>
 const layout = document.getElementById('profile-layout');
-const p = (window.DB && DB.getProfile) ? DB.getProfile() : profileData;
 
-layout.innerHTML = `
-  <!-- LEFT: Profile card -->
-  <div class="profile-card fade-in">
-    <div class="profile-card-photo-wrap">
-      <img class="profile-card-photo" src="${p.profileImage}" alt="${p.name}"/>
-      <div class="profile-photo-overlay"></div>
-    </div>
-    <div class="profile-card-info">
-      <div class="profile-name">${p.name}</div>
-      <div class="profile-nickname">${p.nickname}</div>
-      <div class="profile-tagline">${p.tagline}</div>
-      <ul class="profile-fav-list">
-        <li><span class="fav-label">Team</span>      <span class="fav-val">${p.favoriteTeam}</span></li>
-        <li><span class="fav-label">Car</span>       <span class="fav-val">${p.favoriteCar}</span></li>
-        <li><span class="fav-label">Genre</span>     <span class="fav-val">${p.favoriteGenre}</span></li>
-        <li><span class="fav-label">Destination</span><span class="fav-val">${p.favoritePlace}</span></li>
-      </ul>
-    </div>
-  </div>
+async function initProfile(){
+  try{
+    const p = (window.DB && DB.getProfile) ? await DB.getProfile() : profileData;
 
-  <!-- RIGHT: Stats and bio -->
-  <div class="profile-right">
+    layout.innerHTML = `
+      <!-- LEFT: Profile card -->
+      <div class="profile-card fade-in">
+        <div class="profile-card-photo-wrap">
+          <img class="profile-card-photo" src="${p.profileImage}" alt="${p.name}"/>
+          <div class="profile-photo-overlay"></div>
+        </div>
+        <div class="profile-card-info">
+          <div class="profile-name">${p.name}</div>
+          <div class="profile-nickname">${p.nickname}</div>
+          <div class="profile-tagline">${p.tagline}</div>
+          <ul class="profile-fav-list">
+            <li><span class="fav-label">Team</span><span class="fav-val">${p.favoriteTeam}</span></li>
+            <li><span class="fav-label">Car</span><span class="fav-val">${p.favoriteCar}</span></li>
+            <li><span class="fav-label">Genre</span><span class="fav-val">${p.favoriteGenre}</span></li>
+            <li><span class="fav-label">Destination</span><span class="fav-val">${p.favoritePlace}</span></li>
+          </ul>
+        </div>
+      </div>
 
-    <div class="panel fade-in" style="animation-delay:.1s">
-      <div class="panel-title">Biography</div>
-      <div class="bio-text">${p.bio}</div>
-    </div>
+      <!-- RIGHT: Stats and bio -->
+      <div class="profile-right">
+        <div class="panel fade-in" style="animation-delay:.1s">
+          <div class="panel-title">Biography</div>
+          <div class="bio-text">${p.bio}</div>
+        </div>
 
-    <div class="panel fade-in" style="animation-delay:.2s">
-      <div class="panel-title">Stat Sheet</div>
-      <div class="stat-bars">
-        ${p.stats.map(s => `
-          <div class="stat-bar-wrap">
-            <div class="stat-bar-label">
-              <span>${s.label}</span>
-              <span>${s.value}</span>
-            </div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill" data-value="${s.value}"></div>
-            </div>
+        <div class="panel fade-in" style="animation-delay:.2s">
+          <div class="panel-title">Stat Sheet</div>
+          <div class="stat-bars">
+            ${(p.stats || []).map(s => `
+              <div class="stat-bar-wrap">
+                <div class="stat-bar-label">
+                  <span>${s.label}</span>
+                  <span>${s.value}</span>
+                </div>
+                <div class="stat-bar-track">
+                  <div class="stat-bar-fill" data-value="${s.value}"></div>
+                </div>
+              </div>
+            `).join('')}
           </div>
-        `).join('')}
+        </div>
+
+        <div class="panel fade-in" style="animation-delay:.3s">
+          <div class="panel-title">Signature Quote</div>
+          <div class="quote-box">
+            <div class="quote-text">${p.favoriteQuote}</div>
+          </div>
+        </div>
       </div>
-    </div>
+    `;
 
-    <div class="panel fade-in" style="animation-delay:.3s">
-      <div class="panel-title">Signature Quote</div>
-      <div class="quote-box">
-        <div class="quote-text">${p.favoriteQuote}</div>
-      </div>
-    </div>
+    setTimeout(() => animateStatBars(), 300);
+  }catch(err){
+    console.error(err);
+    layout.innerHTML = '<div style="color:rgba(255,255,255,.45);padding:40px 20px;text-align:center;">Failed to load profile.</div>';
+  }
+}
 
-  </div>
-`;
-
-// Animate stat bars after DOM is ready
-setTimeout(() => animateStatBars(), 300);
+initProfile();
 </script>
 </body>
 </html>

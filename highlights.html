@@ -270,28 +270,41 @@ const RARITY = {
 
 const grid = document.getElementById('highlights-grid');
 
-const highlightsList = (window.DB && DB.getHighlights) ? DB.getHighlights() : highlightsData;
+async function initHighlights(){
+  try{
+    const highlightsList = (window.DB && DB.getHighlights)
+      ? await DB.getHighlights()
+      : highlightsData;
 
-highlightsList.forEach((item, i) => {
-  const r = RARITY[item.rarity] || RARITY.Common;
-  const card = document.createElement('div');
-  card.className = 'achievement-card';
-  card.style.cssText = `
-    --rarity-color: ${r.color};
-    --rarity-glow: ${r.glow};
-    animation: float-up 0.5s ${i * 0.07}s ease both;
-    opacity: 0;
-  `;
-  card.innerHTML = `
-    <div class="rarity-bar"></div>
-    <span class="achievement-icon">${item.icon}</span>
-    <span class="rarity-label">${item.rarity}</span>
-    <div class="achievement-title">${item.title}</div>
-    <div class="achievement-sub">${item.subtitle}</div>
-    <div class="achievement-desc">${item.description}</div>
-  `;
-  grid.appendChild(card);
-});
+    grid.innerHTML = '';
+
+    highlightsList.forEach((item, i) => {
+      const r = RARITY[item.rarity] || RARITY.Common;
+      const card = document.createElement('div');
+      card.className = 'achievement-card';
+      card.style.cssText = `
+        --rarity-color: ${r.color};
+        --rarity-glow: ${r.glow};
+        animation: float-up 0.5s ${i * 0.07}s ease both;
+        opacity: 0;
+      `;
+      card.innerHTML = `
+        <div class="rarity-bar"></div>
+        <span class="achievement-icon">${item.icon}</span>
+        <span class="rarity-label">${item.rarity}</span>
+        <div class="achievement-title">${item.title}</div>
+        <div class="achievement-sub">${item.subtitle}</div>
+        <div class="achievement-desc">${item.description}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }catch(err){
+    console.error(err);
+    grid.innerHTML = '<div style="color:rgba(255,255,255,.45);padding:40px 20px;grid-column:1/-1;text-align:center;">Failed to load highlights.</div>';
+  }
+}
+
+initHighlights();
 </script>
 </body>
 </html>

@@ -561,7 +561,17 @@ function closePlayer(){
 document.getElementById('player-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closePlayer();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closePlayer();});
 
-buildStudio(DB.getStudio());
+async function initStudio(){
+  try{
+    const items = await DB.getStudio();
+    buildStudio(items);
+  }catch(err){
+    console.error(err);
+    document.getElementById('track-list').innerHTML = '<div style="color:rgba(255,255,255,.45);padding:30px 10px;">Failed to load studio tracks.</div>';
+  }
+}
+
+initStudio();
 </script>
 </body>
 </html>

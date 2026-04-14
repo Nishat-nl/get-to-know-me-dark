@@ -97,15 +97,20 @@
   </style>
 </head>
 <body>
+
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">INJAMAM<span style="color:var(--blue)">.</span>ADMIN</div>
     <div class="login-sub">RESTRICTED ACCESS — AUTHORISED ONLY</div>
+    <div class="form-group" style="margin-bottom:12px">
+      <div class="login-label">Email</div>
+      <input class="login-input" type="email" id="email-input" placeholder="you@example.com" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
     <div class="form-group">
       <div class="login-label">Password</div>
       <input class="login-input" type="password" id="pw-input" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
     </div>
-    <button class="login-btn" onclick="doLogin()">ENTER ADMIN</button>
+    <button class="login-btn" style="margin-top:14px" onclick="doLogin()">ENTER ADMIN</button>
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
@@ -365,36 +370,49 @@
   </div>
 </div>
 
-<script src="data.js"></script>
-<script src="db.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const ADMIN_PASSWORD='iloveyou';
+const SUPABASE_URL = window.SUPABASE_URL || 'https://tffoycipaduwqrkpbpji.supabase.co';
+const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || 'sb_publishable_j6UPDgDfoRR_lER1VSlOfw_mvfGGtGH';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const BUCKET_IMAGES = 'site-images';
+const BUCKET_AUDIO = 'site-audio';
+
 const state = {
   editing:{ car:null, sport:null, studio:null, travel:null, achievement:null },
   sport:{ coverImage:null, favPhotos:[], gallery:[] },
   travel:{ coverImage:null, gallery:[] },
   studio:{ coverImage:null },
-  profile:{ profileImage:null }
+  profile:{ profileImage:null },
+  data:{
+    cars:[],
+    sports:[],
+    studio:[],
+    travel:[],
+    profile:null,
+    highlights:[]
+  }
 };
 
-function doLogin(){
-  const v=document.getElementById('pw-input').value;
-  if(v===ADMIN_PASSWORD){
-    sessionStorage.setItem('admin_auth','1');
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('admin-app').style.display='block';
-    initAdmin();
-  } else {
-    const e=document.getElementById('login-err');
-    e.textContent='Incorrect password.';
-    setTimeout(()=>e.textContent='',2500);
-  }
-}
-function doLogout(){ sessionStorage.removeItem('admin_auth'); location.reload(); }
-if(sessionStorage.getItem('admin_auth')==='1'){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('admin-app').style.display='block';
-}
+const TABLES = {
+  cars:'cars',
+  carImages:'car_images',
+  sports:'sports',
+  sportStats:'sport_stats',
+  sportFavPhotos:'sport_fav_player_photos',
+  sportGalleryPhotos:'sport_gallery_photos',
+  studio:'studio_items',
+  studioRecordings:'studio_recordings',
+  travel:'travel_items',
+  travelTags:'travel_tags',
+  travelPhotos:'travel_photos',
+  profile:'site_profile',
+  profileStats:'profile_stats',
+  highlights:'highlights',
+  profiles:'profiles'
+};
 
 let _toastT;
 function toast(msg, good=true){
@@ -403,34 +421,336 @@ function toast(msg, good=true){
   t.style.borderColor=good?'rgba(48,214,138,.4)':'rgba(255,69,58,.4)';
   t.style.color=good?'#30d68a':'#ff453a';
   t.style.opacity='1';
-  clearTimeout(_toastT); _toastT=setTimeout(()=>t.style.opacity='0',2800);
+  clearTimeout(_toastT);
+  _toastT=setTimeout(()=>t.style.opacity='0',3200);
 }
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
+function uid(prefix='id'){ return `${prefix}_${crypto.randomUUID()}`; }
+
+function showLogin(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('admin-app').style.display='none';
+}
+function showAdmin(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('admin-app').style.display='block';
+}
+
+async function getCurrentUser(){
+  const { data, error } = await supabaseClient.auth.getUser();
+  if (error) return null;
+  return data?.user || null;
+}
+
+async function ensureAdminSession(){
+  const user = await getCurrentUser();
+  if(!user) return false;
+  const { data, error } = await supabaseClient
+    .from(TABLES.profiles)
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
+  if(error || !data?.is_admin) return false;
+  return true;
+}
+
+async function doLogin(){
+  const email=document.getElementById('email-input').value.trim();
+  const password=document.getElementById('pw-input').value;
+  const e=document.getElementById('login-err');
+  e.textContent='';
+  if(!email || !password){
+    e.textContent='Email and password are required.';
+    return;
+  }
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(error){
+    e.textContent=error.message || 'Login failed.';
+    setTimeout(()=>e.textContent='',3500);
+    return;
+  }
+  const ok = await ensureAdminSession();
+  if(!ok){
+    await supabaseClient.auth.signOut();
+    e.textContent='This account is not authorised as admin.';
+    setTimeout(()=>e.textContent='',3500);
+    return;
+  }
+  showAdmin();
+  await initAdmin();
+}
+
+async function doLogout(){
+  await supabaseClient.auth.signOut();
+  location.reload();
+}
+
+window.doLogin = doLogin;
+window.doLogout = doLogout;
+
 function switchTab(name,ev){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  ev.currentTarget.classList.add('active');
+  if(ev && ev.currentTarget) ev.currentTarget.classList.add('active');
 }
-async function fileToMaybeBase64(file){ return file ? DB.fileToBase64(file) : null; }
+window.switchTab = switchTab;
+
+function fileToDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 async function previewSingle(inputId, prevId){
   const file=document.getElementById(inputId).files[0], prev=document.getElementById(prevId);
   if(!file||!prev) return;
-  prev.innerHTML=`<img src="${await DB.fileToBase64(file)}" style="width:90px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,.12)"/>`;
+  prev.innerHTML=`<img src="${await fileToDataUrl(file)}" style="width:90px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,.12)"/>`;
 }
 async function previewMulti(inputId, prevId, max){
   const files=Array.from(document.getElementById(inputId).files).slice(0,max);
   const prev=document.getElementById(prevId); if(!prev) return;
-  const urls=await Promise.all(files.map(f=>DB.fileToBase64(f)));
+  const urls=await Promise.all(files.map(fileToDataUrl));
   prev.innerHTML=urls.map(u=>`<img src="${u}" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,.1)"/>`).join('');
 }
 function previewAudios(inputId, prevId){
   const files=Array.from(document.getElementById(inputId).files);
   const prev=document.getElementById(prevId); if(!prev) return;
-  prev.innerHTML=files.map(f=>`<div class="aud-chip">🎵 ${f.name}</div>`).join('');
+  prev.innerHTML=files.map(f=>`<div class="aud-chip">🎵 ${esc(f.name)}</div>`).join('');
 }
-function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
+window.previewSingle = previewSingle;
+window.previewMulti = previewMulti;
+window.previewAudios = previewAudios;
 
-// sports stats rows
+function makeStoragePath(folder, filename){
+  const clean = filename.replace(/[^a-zA-Z0-9._-]+/g,'_');
+  return `${folder}/${Date.now()}_${crypto.randomUUID()}_${clean}`;
+}
+async function uploadFile(bucket, file, folder){
+  const path = makeStoragePath(folder, file.name);
+  const { error } = await supabaseClient.storage.from(bucket).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false
+  });
+  if(error) throw error;
+  const { data } = supabaseClient.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
+}
+async function uploadImages(files, folder){
+  const out = [];
+  for(const file of files){
+    out.push(await uploadFile(BUCKET_IMAGES, file, folder));
+  }
+  return out;
+}
+async function uploadAudioFile(file, folder){
+  return uploadFile(BUCKET_AUDIO, file, folder);
+}
+
+async function fetchCars(){
+  const { data: cars, error } = await supabaseClient
+    .from(TABLES.cars)
+    .select('*')
+    .order('sort_order', { ascending:true })
+    .order('created_at', { ascending:true });
+  if(error) throw error;
+  state.data.cars = (cars || []).map(c=>({
+    id:c.id,
+    name:c.name,
+    brand:c.brand,
+    year:c.year,
+    tag:c.tag,
+    description:c.why_i_love_it || '',
+    coverImage:c.cover_image
+  }));
+  renderCars();
+}
+
+async function fetchSports(){
+  const { data: sports, error } = await supabaseClient
+    .from(TABLES.sports)
+    .select('*')
+    .order('sort_order', { ascending:true })
+    .order('created_at', { ascending:true });
+  if(error) throw error;
+  const ids = (sports || []).map(s=>s.id);
+  let stats=[], favPhotos=[], gallery=[];
+  if(ids.length){
+    const [statsRes, favRes, galRes] = await Promise.all([
+      supabaseClient.from(TABLES.sportStats).select('*').in('sport_id', ids).order('sort_order', { ascending:true }),
+      supabaseClient.from(TABLES.sportFavPhotos).select('*').in('sport_id', ids).order('sort_order', { ascending:true }),
+      supabaseClient.from(TABLES.sportGalleryPhotos).select('*').in('sport_id', ids).order('sort_order', { ascending:true })
+    ]);
+    if(statsRes.error) throw statsRes.error;
+    if(favRes.error) throw favRes.error;
+    if(galRes.error) throw galRes.error;
+    stats = statsRes.data || [];
+    favPhotos = favRes.data || [];
+    gallery = galRes.data || [];
+  }
+  state.data.sports = (sports || []).map(s=>({
+    id:s.id,
+    name:s.name,
+    subtitle:s.subtitle,
+    rating:s.rating,
+    coverImage:s.cover_image,
+    memories:s.memories,
+    stats: stats.filter(x=>x.sport_id===s.id).map(x=>({label:x.label, value:x.value})),
+    favPlayer:{
+      name:s.fav_player_name || '',
+      info:s.fav_player_info || '',
+      photos:favPhotos.filter(x=>x.sport_id===s.id).map(x=>x.image_url)
+    },
+    photos:gallery.filter(x=>x.sport_id===s.id).map(x=>x.image_url)
+  }));
+  renderSports();
+}
+
+async function fetchStudio(){
+  const { data: items, error } = await supabaseClient
+    .from(TABLES.studio)
+    .select('*')
+    .order('sort_order', { ascending:true })
+    .order('created_at', { ascending:true });
+  if(error) throw error;
+
+  let recordings = [];
+  if((items||[]).length){
+    const ids=(items||[]).map(x=>x.id);
+    const recRes = await supabaseClient
+      .from(TABLES.studioRecordings)
+      .select('*')
+      .in('studio_id', ids)
+      .order('sort_order', { ascending:true })
+      .order('created_at', { ascending:true });
+    if(recRes.error && !/relation .* does not exist/i.test(recRes.error.message||'')){
+      throw recRes.error;
+    }
+    recordings = recRes.data || [];
+  }
+
+  state.data.studio = (items || []).map(s=>({
+    id:s.id,
+    title:s.title,
+    category:s.category,
+    mood:s.mood,
+    description:s.description,
+    coverImage:s.cover_image,
+    recordings: recordings.filter(r=>r.studio_id===s.id).map(r=>({
+      id:r.id,
+      name:r.name,
+      fileUrl:r.file_url
+    }))
+  }));
+  renderStudio();
+}
+
+async function fetchTravel(){
+  const { data: items, error } = await supabaseClient
+    .from(TABLES.travel)
+    .select('*')
+    .order('sort_order', { ascending:true })
+    .order('created_at', { ascending:true });
+  if(error) throw error;
+  const ids=(items||[]).map(t=>t.id);
+  let tags=[], photos=[];
+  if(ids.length){
+    const [tagRes, photoRes] = await Promise.all([
+      supabaseClient.from(TABLES.travelTags).select('*').in('travel_id', ids).order('sort_order', { ascending:true }),
+      supabaseClient.from(TABLES.travelPhotos).select('*').in('travel_id', ids).order('sort_order', { ascending:true })
+    ]);
+    if(tagRes.error) throw tagRes.error;
+    if(photoRes.error) throw photoRes.error;
+    tags=tagRes.data||[];
+    photos=photoRes.data||[];
+  }
+  state.data.travel = (items || []).map(t=>({
+    id:t.id,
+    place:t.place,
+    country:t.country,
+    year:t.year,
+    note:t.note,
+    favoriteMoment:t.favorite_moment,
+    bestFood:t.best_food,
+    revisit:t.revisit,
+    coverImage:t.cover_image,
+    tags:tags.filter(x=>x.travel_id===t.id).map(x=>x.tag),
+    photos:photos.filter(x=>x.travel_id===t.id).map(x=>x.image_url)
+  }));
+  renderTravel();
+}
+
+async function fetchProfile(){
+  const { data: profile, error } = await supabaseClient
+    .from(TABLES.profile)
+    .select('*')
+    .order('created_at', { ascending:true })
+    .limit(1)
+    .maybeSingle();
+  if(error) throw error;
+  let stats=[];
+  if(profile){
+    const statsRes = await supabaseClient
+      .from(TABLES.profileStats)
+      .select('*')
+      .eq('profile_id', profile.id)
+      .order('sort_order', { ascending:true });
+    if(statsRes.error) throw statsRes.error;
+    stats = statsRes.data || [];
+  }
+  state.data.profile = profile ? {
+    id:profile.id,
+    name:profile.name || '',
+    nickname:profile.nickname || '',
+    tagline:profile.tagline || '',
+    bio:profile.bio || '',
+    profileImage:profile.profile_image || '',
+    favoriteTeam:profile.favorite_team || '',
+    favoriteCar:profile.favorite_car || '',
+    favoriteGenre:profile.favorite_genre || '',
+    favoritePlace:profile.favorite_place || '',
+    favoriteQuote:profile.favorite_quote || '',
+    stats:stats.map(s=>({label:s.label, value:s.value}))
+  } : null;
+  loadProfileForm();
+}
+
+async function fetchHighlights(){
+  const { data, error } = await supabaseClient
+    .from(TABLES.highlights)
+    .select('*')
+    .order('sort_order', { ascending:true })
+    .order('created_at', { ascending:true });
+  if(error) throw error;
+  state.data.highlights = (data || []).map(a=>({
+    id:a.id,
+    icon:a.icon,
+    title:a.title,
+    subtitle:a.subtitle,
+    description:a.description,
+    rarity:a.rarity
+  }));
+  renderAchievements();
+}
+
+async function fetchAll(){
+  await Promise.all([
+    fetchCars(),
+    fetchSports(),
+    fetchStudio(),
+    fetchTravel(),
+    fetchProfile(),
+    fetchHighlights()
+  ]);
+}
+
+function renderExistingThumbs(elId, arr, remover){
+  const el=document.getElementById(elId);
+  el.innerHTML=(arr||[]).map((src,i)=>`<div class="thumb"><img src="${src}"><button type="button" onclick="${remover}(${i})">✕</button></div>`).join('');
+}
+
 let statCount=0, profileStatCount=0;
 const DEFAULT_STATS=['Pace','Shooting','Passing','Dribbling','Defense','Physical'];
 function addStatRow(label='', val=80){
@@ -448,7 +768,7 @@ function initStatRows(stats){
 function collectStats(){
   return Array.from(document.querySelectorAll('#stats-rows [id^="sr-"]')).map(r=>{
     const id=r.id.replace('sr-','');
-    return { label:document.getElementById('sl-'+id).value.trim(), value:parseInt(document.getElementById('sv-'+id).value||0) };
+    return { label:document.getElementById('sl-'+id).value.trim(), value:parseInt(document.getElementById('sv-'+id).value||0,10) };
   }).filter(s=>s.label);
 }
 function addProfileStatRow(label='', val=80){
@@ -466,14 +786,23 @@ function initProfileStats(stats){
 function collectProfileStats(){
   return Array.from(document.querySelectorAll('#profile-stats-rows [id^="psr-"]')).map(r=>{
     const id=r.id.replace('psr-','');
-    return { label:document.getElementById('psl-'+id).value.trim(), value:parseInt(document.getElementById('psv-'+id).value||0) };
+    return { label:document.getElementById('psl-'+id).value.trim(), value:parseInt(document.getElementById('psv-'+id).value||0,10) };
   }).filter(s=>s.label);
 }
+window.addStatRow = addStatRow;
+window.addProfileStatRow = addProfileStatRow;
 
-// reset/load forms
-function resetCarForm(){ state.editing.car=null; ['c-name','c-brand','c-year','c-tag','c-desc'].forEach(id=>document.getElementById(id).value=''); document.getElementById('c-cover-file').value=''; document.getElementById('c-cover-prev').innerHTML=''; document.getElementById('c-submit-btn').textContent='ADD TO GARAGE';}
+function resetCarForm(){
+  state.editing.car=null;
+  ['c-name','c-brand','c-year','c-tag','c-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('c-cover-file').value='';
+  document.getElementById('c-cover-prev').innerHTML='';
+  document.getElementById('c-submit-btn').textContent='ADD TO GARAGE';
+}
+window.resetCarForm = resetCarForm;
+
 function startEditCar(id){
-  const c=DB.getCars().find(x=>x.id===id); if(!c) return;
+  const c=state.data.cars.find(x=>x.id===id); if(!c) return;
   state.editing.car=id;
   document.getElementById('c-name').value=c.name||'';
   document.getElementById('c-brand').value=c.brand||'';
@@ -482,46 +811,85 @@ function startEditCar(id){
   document.getElementById('c-desc').value=c.description||'';
   document.getElementById('c-cover-prev').innerHTML=c.coverImage?`<img src="${c.coverImage}" style="width:90px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,.12)"/>`:'';
   document.getElementById('c-submit-btn').textContent='SAVE CAR';
-  switchTab('cars',{currentTarget:document.querySelector(".tab-btn.active")||document.querySelectorAll('.tab-btn')[0]}); // no-op
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.remove('active'));
+  document.querySelector('.tab-btn').classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-cars').classList.add('active');
 }
+
 async function saveCar(){
-  const name=document.getElementById('c-name').value.trim(), brand=document.getElementById('c-brand').value.trim();
-  if(!name||!brand){toast('Name and Brand are required.',false);return;}
-  let coverImage=null;
-  const file=document.getElementById('c-cover-file').files[0];
-  if(file) coverImage=await DB.fileToBase64(file);
-  if(state.editing.car){
-    const old=DB.getCars().find(c=>c.id===state.editing.car);
-    const car={...old,name,brand,year:document.getElementById('c-year').value.trim(),tag:document.getElementById('c-tag').value.trim(),description:document.getElementById('c-desc').value.trim(),coverImage:coverImage||old.coverImage};
-    DB.updateCar(car); toast('Car updated! ✓');
-  }else{
-    if(!coverImage){toast('Cover photo required for a new car.',false);return;}
-    DB.addCar({id:DB.uid('car'),name,brand,year:document.getElementById('c-year').value.trim(),tag:document.getElementById('c-tag').value.trim(),description:document.getElementById('c-desc').value.trim(),coverImage});
-    toast('Car added! ✓');
+  try{
+    const name=document.getElementById('c-name').value.trim();
+    const brand=document.getElementById('c-brand').value.trim();
+    if(!name||!brand){toast('Name and Brand are required.',false);return;}
+    let coverImage = state.editing.car ? state.data.cars.find(c=>c.id===state.editing.car)?.coverImage || null : null;
+    const file=document.getElementById('c-cover-file').files[0];
+    if(file) coverImage=await uploadFile(BUCKET_IMAGES, file, 'cars');
+    if(!state.editing.car && !coverImage){toast('Cover photo required for a new car.',false);return;}
+
+    const payload = {
+      name,
+      brand,
+      year:document.getElementById('c-year').value.trim()||null,
+      tag:document.getElementById('c-tag').value.trim()||null,
+      why_i_love_it:document.getElementById('c-desc').value.trim()||null,
+      cover_image:coverImage,
+      updated_at:new Date().toISOString()
+    };
+
+    if(state.editing.car){
+      const { error } = await supabaseClient.from(TABLES.cars).update(payload).eq('id', state.editing.car);
+      if(error) throw error;
+      toast('Car updated! ✓');
+    } else {
+      payload.sort_order = state.data.cars.length;
+      const { error } = await supabaseClient.from(TABLES.cars).insert(payload);
+      if(error) throw error;
+      toast('Car added! ✓');
+    }
+    resetCarForm();
+    await fetchCars();
+  }catch(err){
+    toast(err.message || 'Failed to save car.', false);
   }
-  resetCarForm(); renderCars();
 }
-function delCar(id){ if(confirm('Delete this car?')){ DB.deleteCar(id); toast('Deleted.'); renderCars(); if(state.editing.car===id) resetCarForm(); } }
+window.saveCar = saveCar;
+
+async function delCar(id){
+  if(!confirm('Delete this car?')) return;
+  try{
+    const { error } = await supabaseClient.from(TABLES.cars).delete().eq('id', id);
+    if(error) throw error;
+    toast('Deleted.');
+    if(state.editing.car===id) resetCarForm();
+    await fetchCars();
+  }catch(err){
+    toast(err.message || 'Failed to delete car.', false);
+  }
+}
+window.delCar = delCar;
+window.startEditCar = startEditCar;
 
 function resetSportForm(){
-  state.editing.sport=null; state.sport={coverImage:null,favPhotos:[],gallery:[]};
+  state.editing.sport=null;
+  state.sport={coverImage:null,favPhotos:[],gallery:[]};
   ['s-name','s-sub','s-rating','s-memory','s-fav-name','s-fav-info'].forEach(id=>document.getElementById(id).value='');
   ['s-cover-file','s-fav-photos','s-gallery'].forEach(id=>document.getElementById(id).value='');
   ['s-cover-prev','s-fav-prev','s-gallery-prev','s-fav-existing','s-gallery-existing'].forEach(id=>document.getElementById(id).innerHTML='');
   document.getElementById('s-submit-btn').textContent='ADD SPORT';
   initStatRows();
 }
-function renderExistingThumbs(elId, arr, remover){
-  const el=document.getElementById(elId);
-  el.innerHTML=(arr||[]).map((src,i)=>`<div class="thumb"><img src="${src}"><button type="button" onclick="${remover}(${i})">✕</button></div>`).join('');
-}
+window.resetSportForm = resetSportForm;
+
 function removeFavPhoto(i){ state.sport.favPhotos.splice(i,1); renderExistingThumbs('s-fav-existing',state.sport.favPhotos,'removeFavPhoto'); }
 function removeSportGallery(i){ state.sport.gallery.splice(i,1); renderExistingThumbs('s-gallery-existing',state.sport.gallery,'removeSportGallery'); }
+window.removeFavPhoto = removeFavPhoto;
+window.removeSportGallery = removeSportGallery;
+
 function startEditSport(id){
-  const s=DB.getSports().find(x=>x.id===id); if(!s) return;
+  const s=state.data.sports.find(x=>x.id===id); if(!s) return;
   state.editing.sport=id;
   state.sport={ coverImage:s.coverImage||null, favPhotos:[...(s.favPlayer?.photos||[])], gallery:[...(s.photos||[])] };
-  ['s-name','s-sub','s-rating','s-memory','s-fav-name','s-fav-info'].forEach(()=>{});
   document.getElementById('s-name').value=s.name||'';
   document.getElementById('s-sub').value=s.subtitle||'';
   document.getElementById('s-rating').value=s.rating||80;
@@ -534,40 +902,114 @@ function startEditSport(id){
   initStatRows(s.stats||[]);
   document.getElementById('s-submit-btn').textContent='SAVE SPORT';
 }
-async function saveSport(){
-  const name=document.getElementById('s-name').value.trim();
-  if(!name){toast('Sport name required.',false);return;}
-  const coverFile=document.getElementById('s-cover-file').files[0];
-  let coverImage=state.sport.coverImage;
-  if(coverFile) coverImage=await DB.fileToBase64(coverFile);
-  if(!coverImage){toast('Cover photo required.',false);return;}
-  const newFav=await Promise.all(Array.from(document.getElementById('s-fav-photos').files).slice(0, Math.max(0,3-state.sport.favPhotos.length)).map(f=>DB.fileToBase64(f)));
-  const newGal=await Promise.all(Array.from(document.getElementById('s-gallery').files).slice(0, Math.max(0,10-state.sport.gallery.length)).map(f=>DB.fileToBase64(f)));
-  const sport={
-    id: state.editing.sport || DB.uid('sport'),
-    name,
-    subtitle:document.getElementById('s-sub').value.trim(),
-    rating:parseInt(document.getElementById('s-rating').value||80),
-    coverImage,
-    stats:collectStats(),
-    memories:document.getElementById('s-memory').value.trim(),
-    favPlayer:{name:document.getElementById('s-fav-name').value.trim(),info:document.getElementById('s-fav-info').value.trim(),photos:[...state.sport.favPhotos,...newFav].slice(0,3)},
-    photos:[...state.sport.gallery,...newGal].slice(0,10)
-  };
-  if(state.editing.sport){ DB.updateSport(sport); toast('Sport updated! ✓'); } else { DB.addSport(sport); toast('Sport added! ✓'); }
-  resetSportForm(); renderSports();
+window.startEditSport = startEditSport;
+
+async function replaceSportChildren(sportId, stats, favPhotos, galleryPhotos){
+  await Promise.all([
+    supabaseClient.from(TABLES.sportStats).delete().eq('sport_id', sportId),
+    supabaseClient.from(TABLES.sportFavPhotos).delete().eq('sport_id', sportId),
+    supabaseClient.from(TABLES.sportGalleryPhotos).delete().eq('sport_id', sportId)
+  ]);
+
+  if(stats.length){
+    const { error } = await supabaseClient.from(TABLES.sportStats).insert(
+      stats.map((s, i)=>({ sport_id:sportId, label:s.label, value:s.value, sort_order:i }))
+    );
+    if(error) throw error;
+  }
+  if(favPhotos.length){
+    const { error } = await supabaseClient.from(TABLES.sportFavPhotos).insert(
+      favPhotos.map((url, i)=>({ sport_id:sportId, image_url:url, sort_order:i }))
+    );
+    if(error) throw error;
+  }
+  if(galleryPhotos.length){
+    const { error } = await supabaseClient.from(TABLES.sportGalleryPhotos).insert(
+      galleryPhotos.map((url, i)=>({ sport_id:sportId, image_url:url, sort_order:i }))
+    );
+    if(error) throw error;
+  }
 }
-function delSport(id){ if(confirm('Delete this sport?')){ DB.deleteSport(id); toast('Deleted.'); renderSports(); if(state.editing.sport===id) resetSportForm(); } }
+
+async function saveSport(){
+  try{
+    const name=document.getElementById('s-name').value.trim();
+    if(!name){toast('Sport name required.',false);return;}
+
+    let coverImage=state.sport.coverImage;
+    const coverFile=document.getElementById('s-cover-file').files[0];
+    if(coverFile) coverImage=await uploadFile(BUCKET_IMAGES, coverFile, 'sports/covers');
+    if(!coverImage){toast('Cover photo required.',false);return;}
+
+    const favSlots = Math.max(0, 3 - state.sport.favPhotos.length);
+    const gallerySlots = Math.max(0, 10 - state.sport.gallery.length);
+    const newFav = await uploadImages(Array.from(document.getElementById('s-fav-photos').files).slice(0, favSlots), 'sports/fav');
+    const newGal = await uploadImages(Array.from(document.getElementById('s-gallery').files).slice(0, gallerySlots), 'sports/gallery');
+
+    const payload = {
+      name,
+      subtitle:document.getElementById('s-sub').value.trim()||null,
+      rating:parseInt(document.getElementById('s-rating').value||80,10),
+      cover_image:coverImage,
+      memories:document.getElementById('s-memory').value.trim()||null,
+      fav_player_name:document.getElementById('s-fav-name').value.trim()||null,
+      fav_player_info:document.getElementById('s-fav-info').value.trim()||null,
+      updated_at:new Date().toISOString()
+    };
+
+    let sportId = state.editing.sport;
+    if(sportId){
+      const { error } = await supabaseClient.from(TABLES.sports).update(payload).eq('id', sportId);
+      if(error) throw error;
+    }else{
+      payload.sort_order = state.data.sports.length;
+      const { data, error } = await supabaseClient.from(TABLES.sports).insert(payload).select('id').single();
+      if(error) throw error;
+      sportId = data.id;
+    }
+
+    await replaceSportChildren(
+      sportId,
+      collectStats(),
+      [...state.sport.favPhotos, ...newFav].slice(0,3),
+      [...state.sport.gallery, ...newGal].slice(0,10)
+    );
+
+    toast(state.editing.sport ? 'Sport updated! ✓' : 'Sport added! ✓');
+    resetSportForm();
+    await fetchSports();
+  }catch(err){
+    toast(err.message || 'Failed to save sport.', false);
+  }
+}
+window.saveSport = saveSport;
+
+async function delSport(id){
+  if(!confirm('Delete this sport?')) return;
+  try{
+    const { error } = await supabaseClient.from(TABLES.sports).delete().eq('id', id);
+    if(error) throw error;
+    toast('Deleted.');
+    if(state.editing.sport===id) resetSportForm();
+    await fetchSports();
+  }catch(err){
+    toast(err.message || 'Failed to delete sport.', false);
+  }
+}
+window.delSport = delSport;
 
 function resetStudioForm(){
-  state.editing.studio=null; state.studio={coverImage:null};
+  state.editing.studio=null;
+  state.studio={coverImage:null};
   ['m-title','m-cat','m-mood','m-desc'].forEach(id=>document.getElementById(id).value='');
   ['m-cover-file','m-audio-files'].forEach(id=>document.getElementById(id).value='');
   ['m-cover-prev','m-audio-prev'].forEach(id=>document.getElementById(id).innerHTML='');
   document.getElementById('m-submit-btn').textContent='ADD MUSIC CARD';
 }
+window.resetStudioForm = resetStudioForm;
+
 function startEditStudio(id){
-  const s=DB.getStudio().find(x=>x.id===id); if(!s) return;
+  const s=state.data.studio.find(x=>x.id===id); if(!s) return;
   state.editing.studio=id; state.studio={coverImage:s.coverImage||null};
   document.getElementById('m-title').value=s.title||'';
   document.getElementById('m-cat').value=s.category||'';
@@ -576,62 +1018,144 @@ function startEditStudio(id){
   document.getElementById('m-cover-prev').innerHTML=s.coverImage?`<img src="${s.coverImage}" style="width:90px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,.12)"/>`:'';
   document.getElementById('m-submit-btn').textContent='SAVE MUSIC CARD';
 }
+window.startEditStudio = startEditStudio;
+
 async function saveStudioCard(){
-  const title=document.getElementById('m-title').value.trim();
-  if(!title){toast('Title required.',false);return;}
-  const coverFile=document.getElementById('m-cover-file').files[0];
-  let coverImage=state.studio.coverImage;
-  if(coverFile) coverImage=await DB.fileToBase64(coverFile);
-  if(!coverImage){toast('Cover image required.',false);return;}
-  if(state.editing.studio){
-    const old=DB.getStudio().find(s=>s.id===state.editing.studio);
-    DB.updateStudioItem({...old,title,category:document.getElementById('m-cat').value.trim(),mood:document.getElementById('m-mood').value.trim(),description:document.getElementById('m-desc').value.trim(),coverImage});
-    toast('Studio card updated! ✓');
-  }else{
-    const audioFiles=Array.from(document.getElementById('m-audio-files').files);
-    const recordings=[];
-    for(const af of audioFiles){
-      const recId=DB.uid('rec');
-      await idbPut({ id:recId, name:af.name.replace(/\.[^.]+$/,''), mimeType:af.type||'audio/mpeg', blob:af });
-      recordings.push({id:recId,name:af.name.replace(/\.[^.]+$/,'')});
+  try{
+    const title=document.getElementById('m-title').value.trim();
+    if(!title){toast('Title required.',false);return;}
+    const coverFile=document.getElementById('m-cover-file').files[0];
+    let coverImage=state.studio.coverImage;
+    if(coverFile) coverImage=await uploadFile(BUCKET_IMAGES, coverFile, 'studio/covers');
+    if(!coverImage){toast('Cover image required.',false);return;}
+
+    const payload = {
+      title,
+      category:document.getElementById('m-cat').value.trim()||null,
+      mood:document.getElementById('m-mood').value.trim()||null,
+      description:document.getElementById('m-desc').value.trim()||null,
+      cover_image:coverImage,
+      updated_at:new Date().toISOString()
+    };
+
+    let studioId = state.editing.studio;
+    if(studioId){
+      const { error } = await supabaseClient.from(TABLES.studio).update(payload).eq('id', studioId);
+      if(error) throw error;
+      toast('Studio card updated! ✓');
+    }else{
+      payload.sort_order = state.data.studio.length;
+      const { data, error } = await supabaseClient.from(TABLES.studio).insert(payload).select('id').single();
+      if(error) throw error;
+      studioId = data.id;
+
+      const audioFiles=Array.from(document.getElementById('m-audio-files').files);
+      if(audioFiles.length){
+        const rows=[];
+        for(let i=0;i<audioFiles.length;i++){
+          const af=audioFiles[i];
+          const fileUrl = await uploadAudioFile(af, 'studio/recordings');
+          rows.push({ studio_id:studioId, name:af.name.replace(/\.[^.]+$/,''), file_url:fileUrl, sort_order:i });
+        }
+        const recRes = await supabaseClient.from(TABLES.studioRecordings).insert(rows);
+        if(recRes.error) throw recRes.error;
+      }
+      toast('Music card added! ✓');
     }
-    DB.addStudioItem({id:DB.uid('studio'),title,category:document.getElementById('m-cat').value.trim(),mood:document.getElementById('m-mood').value.trim(),description:document.getElementById('m-desc').value.trim(),coverImage,recordings});
-    toast('Music card added! ✓');
+
+    resetStudioForm();
+    await fetchStudio();
+    populateStudioSelect();
+  }catch(err){
+    if(/relation .*studio_recordings.* does not exist/i.test(err.message||'')){
+      toast('Please create the studio_recordings table first.', false);
+    }else{
+      toast(err.message || 'Failed to save studio card.', false);
+    }
   }
-  resetStudioForm(); populateStudioSelect(); renderStudio();
 }
+window.saveStudioCard = saveStudioCard;
+
 async function addRecordingToCard(){
-  const studioId=document.getElementById('m-existing-select').value;
-  const file=document.getElementById('m-rec-file').files[0];
-  if(!studioId||!file){toast('Select a card and choose an audio file.',false);return;}
-  const recId=DB.uid('rec'), recName=document.getElementById('m-rec-name').value.trim()||file.name.replace(/\.[^.]+$/,'');
-  await idbPut({ id:recId, name:recName, mimeType:file.type||'audio/mpeg', blob:file });
-  DB.addRecordingMeta(studioId,{id:recId,name:recName});
-  document.getElementById('m-rec-name').value=''; document.getElementById('m-rec-file').value=''; document.getElementById('m-rec-prev').innerHTML='';
-  toast('Recording added! ✓'); renderStudio();
+  try{
+    const studioId=document.getElementById('m-existing-select').value;
+    const file=document.getElementById('m-rec-file').files[0];
+    if(!studioId||!file){toast('Select a card and choose an audio file.',false);return;}
+    const recName=document.getElementById('m-rec-name').value.trim()||file.name.replace(/\.[^.]+$/,'');
+    const fileUrl = await uploadAudioFile(file, 'studio/recordings');
+    const current = state.data.studio.find(x=>x.id===studioId);
+    const sortOrder = current?.recordings?.length || 0;
+    const { error } = await supabaseClient.from(TABLES.studioRecordings).insert({
+      studio_id:studioId,
+      name:recName,
+      file_url:fileUrl,
+      sort_order:sortOrder
+    });
+    if(error) throw error;
+    document.getElementById('m-rec-name').value='';
+    document.getElementById('m-rec-file').value='';
+    document.getElementById('m-rec-prev').innerHTML='';
+    toast('Recording added! ✓');
+    await fetchStudio();
+  }catch(err){
+    if(/relation .*studio_recordings.* does not exist/i.test(err.message||'')){
+      toast('Please create the studio_recordings table first.', false);
+    }else{
+      toast(err.message || 'Failed to add recording.', false);
+    }
+  }
 }
+window.addRecordingToCard = addRecordingToCard;
+
 async function delRecording(studioId, recId){
   if(!confirm('Delete this recording?')) return;
-  await DB.deleteRecording(studioId, recId);
-  toast('Recording deleted.'); renderStudio();
+  try{
+    const { error } = await supabaseClient.from(TABLES.studioRecordings).delete().eq('id', recId).eq('studio_id', studioId);
+    if(error) throw error;
+    toast('Recording deleted.');
+    await fetchStudio();
+  }catch(err){
+    toast(err.message || 'Failed to delete recording.', false);
+  }
 }
-function delStudio(id){ if(confirm('Delete this card and its recordings?')){ DB.deleteStudioItem(id); toast('Deleted.'); renderStudio(); populateStudioSelect(); if(state.editing.studio===id) resetStudioForm(); } }
+window.delRecording = delRecording;
+
+async function delStudio(id){
+  if(!confirm('Delete this card and its recordings?')) return;
+  try{
+    const { error } = await supabaseClient.from(TABLES.studio).delete().eq('id', id);
+    if(error) throw error;
+    toast('Deleted.');
+    if(state.editing.studio===id) resetStudioForm();
+    await fetchStudio();
+    populateStudioSelect();
+  }catch(err){
+    toast(err.message || 'Failed to delete studio card.', false);
+  }
+}
+window.delStudio = delStudio;
+
 function populateStudioSelect(){
   const sel=document.getElementById('m-existing-select');
-  sel.innerHTML=DB.getStudio().map(i=>`<option value="${i.id}">${esc(i.title)}</option>`).join('');
+  sel.innerHTML=state.data.studio.map(i=>`<option value="${i.id}">${esc(i.title)}</option>`).join('');
 }
 
 function resetTravelForm(){
-  state.editing.travel=null; state.travel={coverImage:null,gallery:[]};
+  state.editing.travel=null;
+  state.travel={coverImage:null,gallery:[]};
   ['t-place','t-country','t-year','t-tags','t-note','t-moment','t-food'].forEach(id=>document.getElementById(id).value='');
   ['t-cover-file','t-gallery'].forEach(id=>document.getElementById(id).value='');
   ['t-cover-prev','t-gallery-prev','t-gallery-existing'].forEach(id=>document.getElementById(id).innerHTML='');
   document.getElementById('t-revisit').value='true';
   document.getElementById('t-submit-btn').textContent='ADD DESTINATION';
 }
+window.resetTravelForm = resetTravelForm;
+
 function removeTravelGallery(i){ state.travel.gallery.splice(i,1); renderExistingThumbs('t-gallery-existing',state.travel.gallery,'removeTravelGallery'); }
+window.removeTravelGallery = removeTravelGallery;
+
 function startEditTravel(id){
-  const t=DB.getTravel().find(x=>x.id===id); if(!t) return;
+  const t=state.data.travel.find(x=>x.id===id); if(!t) return;
   state.editing.travel=id; state.travel={coverImage:t.coverImage||null,gallery:[...(t.photos||[])]};
   document.getElementById('t-place').value=t.place||'';
   document.getElementById('t-country').value=t.country||'';
@@ -645,34 +1169,88 @@ function startEditTravel(id){
   renderExistingThumbs('t-gallery-existing',state.travel.gallery,'removeTravelGallery');
   document.getElementById('t-submit-btn').textContent='SAVE DESTINATION';
 }
-async function saveTravel(){
-  const place=document.getElementById('t-place').value.trim();
-  if(!place){toast('Place name required.',false);return;}
-  const coverFile=document.getElementById('t-cover-file').files[0];
-  let coverImage=state.travel.coverImage;
-  if(coverFile) coverImage=await DB.fileToBase64(coverFile);
-  if(!coverImage){toast('Cover photo required.',false);return;}
-  const newGal=await Promise.all(Array.from(document.getElementById('t-gallery').files).slice(0, Math.max(0,10-state.travel.gallery.length)).map(f=>DB.fileToBase64(f)));
-  const dest={
-    id: state.editing.travel || DB.uid('travel'),
-    place,
-    country:document.getElementById('t-country').value.trim(),
-    year:document.getElementById('t-year').value.trim(),
-    tags:(document.getElementById('t-tags').value.trim()?document.getElementById('t-tags').value.split(',').map(t=>t.trim()).filter(Boolean):[]),
-    note:document.getElementById('t-note').value.trim(),
-    favoriteMoment:document.getElementById('t-moment').value.trim(),
-    bestFood:document.getElementById('t-food').value.trim(),
-    revisit:document.getElementById('t-revisit').value==='true',
-    coverImage,
-    photos:[...state.travel.gallery,...newGal].slice(0,10)
-  };
-  if(state.editing.travel){ DB.updateTravel(dest); toast('Destination updated! ✓'); } else { DB.addTravel(dest); toast('Destination added! ✓'); }
-  resetTravelForm(); renderTravel();
+window.startEditTravel = startEditTravel;
+
+async function replaceTravelChildren(travelId, tags, photos){
+  await Promise.all([
+    supabaseClient.from(TABLES.travelTags).delete().eq('travel_id', travelId),
+    supabaseClient.from(TABLES.travelPhotos).delete().eq('travel_id', travelId)
+  ]);
+  if(tags.length){
+    const { error } = await supabaseClient.from(TABLES.travelTags).insert(
+      tags.map((tag, i)=>({ travel_id:travelId, tag, sort_order:i }))
+    );
+    if(error) throw error;
+  }
+  if(photos.length){
+    const { error } = await supabaseClient.from(TABLES.travelPhotos).insert(
+      photos.map((url, i)=>({ travel_id:travelId, image_url:url, sort_order:i }))
+    );
+    if(error) throw error;
+  }
 }
-function delTravel(id){ if(confirm('Delete destination?')){ DB.deleteTravel(id); toast('Deleted.'); renderTravel(); if(state.editing.travel===id) resetTravelForm(); } }
+
+async function saveTravel(){
+  try{
+    const place=document.getElementById('t-place').value.trim();
+    if(!place){toast('Place name required.',false);return;}
+    const coverFile=document.getElementById('t-cover-file').files[0];
+    let coverImage=state.travel.coverImage;
+    if(coverFile) coverImage=await uploadFile(BUCKET_IMAGES, coverFile, 'travel/covers');
+    if(!coverImage){toast('Cover photo required.',false);return;}
+    const slots = Math.max(0, 10 - state.travel.gallery.length);
+    const newGal = await uploadImages(Array.from(document.getElementById('t-gallery').files).slice(0, slots), 'travel/gallery');
+
+    const payload = {
+      place,
+      country:document.getElementById('t-country').value.trim()||null,
+      year:document.getElementById('t-year').value.trim()||null,
+      note:document.getElementById('t-note').value.trim()||null,
+      favorite_moment:document.getElementById('t-moment').value.trim()||null,
+      best_food:document.getElementById('t-food').value.trim()||null,
+      revisit:document.getElementById('t-revisit').value==='true',
+      cover_image:coverImage,
+      updated_at:new Date().toISOString()
+    };
+    const tags=(document.getElementById('t-tags').value.trim()?document.getElementById('t-tags').value.split(',').map(t=>t.trim()).filter(Boolean):[]);
+
+    let travelId = state.editing.travel;
+    if(travelId){
+      const { error } = await supabaseClient.from(TABLES.travel).update(payload).eq('id', travelId);
+      if(error) throw error;
+    }else{
+      payload.sort_order = state.data.travel.length;
+      const { data, error } = await supabaseClient.from(TABLES.travel).insert(payload).select('id').single();
+      if(error) throw error;
+      travelId = data.id;
+    }
+
+    await replaceTravelChildren(travelId, tags, [...state.travel.gallery, ...newGal].slice(0,10));
+    toast(state.editing.travel ? 'Destination updated! ✓' : 'Destination added! ✓');
+    resetTravelForm();
+    await fetchTravel();
+  }catch(err){
+    toast(err.message || 'Failed to save destination.', false);
+  }
+}
+window.saveTravel = saveTravel;
+
+async function delTravel(id){
+  if(!confirm('Delete destination?')) return;
+  try{
+    const { error } = await supabaseClient.from(TABLES.travel).delete().eq('id', id);
+    if(error) throw error;
+    toast('Deleted.');
+    if(state.editing.travel===id) resetTravelForm();
+    await fetchTravel();
+  }catch(err){
+    toast(err.message || 'Failed to delete destination.', false);
+  }
+}
+window.delTravel = delTravel;
 
 function loadProfileForm(){
-  const p=DB.getProfile();
+  const p=state.data.profile || {};
   document.getElementById('p-name').value=p.name||'';
   document.getElementById('p-nickname').value=p.nickname||'';
   document.getElementById('p-tagline').value=p.tagline||'';
@@ -686,26 +1264,54 @@ function loadProfileForm(){
   document.getElementById('p-image-prev').innerHTML=p.profileImage?`<img src="${p.profileImage}" style="width:90px;height:70px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,.12)"/>`:'';
   initProfileStats(p.stats||[]);
 }
+window.loadProfileForm = loadProfileForm;
+
 async function saveProfile(){
-  const imageFile=document.getElementById('p-image-file').files[0];
-  let profileImage=state.profile.profileImage;
-  if(imageFile) profileImage=await DB.fileToBase64(imageFile);
-  const profile={
-    name:document.getElementById('p-name').value.trim(),
-    nickname:document.getElementById('p-nickname').value.trim(),
-    tagline:document.getElementById('p-tagline').value.trim(),
-    bio:document.getElementById('p-bio').value.trim(),
-    profileImage,
-    favoriteTeam:document.getElementById('p-team').value.trim(),
-    favoriteCar:document.getElementById('p-car').value.trim(),
-    favoriteGenre:document.getElementById('p-genre').value.trim(),
-    favoritePlace:document.getElementById('p-place').value.trim(),
-    favoriteQuote:document.getElementById('p-quote').value.trim(),
-    stats:collectProfileStats()
-  };
-  DB.saveProfile(profile); toast('Profile saved! ✓');
-  state.profile.profileImage=profileImage;
+  try{
+    const imageFile=document.getElementById('p-image-file').files[0];
+    let profileImage=state.profile.profileImage;
+    if(imageFile) profileImage=await uploadFile(BUCKET_IMAGES, imageFile, 'profile');
+    const stats = collectProfileStats();
+    const payload={
+      name:document.getElementById('p-name').value.trim()||null,
+      nickname:document.getElementById('p-nickname').value.trim()||null,
+      tagline:document.getElementById('p-tagline').value.trim()||null,
+      bio:document.getElementById('p-bio').value.trim()||null,
+      profile_image:profileImage||null,
+      favorite_team:document.getElementById('p-team').value.trim()||null,
+      favorite_car:document.getElementById('p-car').value.trim()||null,
+      favorite_genre:document.getElementById('p-genre').value.trim()||null,
+      favorite_place:document.getElementById('p-place').value.trim()||null,
+      favorite_quote:document.getElementById('p-quote').value.trim()||null,
+      updated_at:new Date().toISOString()
+    };
+
+    let profileId = state.data.profile?.id || null;
+    if(profileId){
+      const { error } = await supabaseClient.from(TABLES.profile).update(payload).eq('id', profileId);
+      if(error) throw error;
+      await supabaseClient.from(TABLES.profileStats).delete().eq('profile_id', profileId);
+    }else{
+      const { data, error } = await supabaseClient.from(TABLES.profile).insert(payload).select('id').single();
+      if(error) throw error;
+      profileId = data.id;
+    }
+
+    if(stats.length){
+      const { error } = await supabaseClient.from(TABLES.profileStats).insert(
+        stats.map((s, i)=>({ profile_id:profileId, label:s.label, value:s.value, sort_order:i }))
+      );
+      if(error) throw error;
+    }
+
+    toast('Profile saved! ✓');
+    state.profile.profileImage=profileImage;
+    await fetchProfile();
+  }catch(err){
+    toast(err.message || 'Failed to save profile.', false);
+  }
 }
+window.saveProfile = saveProfile;
 
 function resetAchievementForm(){
   state.editing.achievement=null;
@@ -713,8 +1319,10 @@ function resetAchievementForm(){
   document.getElementById('a-rarity').value='Legendary';
   document.getElementById('a-submit-btn').textContent='ADD ACHIEVEMENT';
 }
+window.resetAchievementForm = resetAchievementForm;
+
 function startEditAchievement(id){
-  const a=DB.getHighlights().find(x=>x.id===id); if(!a) return;
+  const a=state.data.highlights.find(x=>x.id===id); if(!a) return;
   state.editing.achievement=id;
   document.getElementById('a-icon').value=a.icon||'';
   document.getElementById('a-title').value=a.title||'';
@@ -723,57 +1331,117 @@ function startEditAchievement(id){
   document.getElementById('a-rarity').value=a.rarity||'Legendary';
   document.getElementById('a-submit-btn').textContent='SAVE ACHIEVEMENT';
 }
-function saveAchievement(){
-  const title=document.getElementById('a-title').value.trim();
-  if(!title){toast('Achievement title required.',false);return;}
-  const item={id:state.editing.achievement||DB.uid('ach'),icon:document.getElementById('a-icon').value.trim()||'🏆',title,subtitle:document.getElementById('a-subtitle').value.trim(),description:document.getElementById('a-desc').value.trim(),rarity:document.getElementById('a-rarity').value};
-  if(state.editing.achievement){ DB.updateHighlight(item); toast('Achievement updated! ✓'); } else { DB.addHighlight(item); toast('Achievement added! ✓'); }
-  resetAchievementForm(); renderAchievements();
+window.startEditAchievement = startEditAchievement;
+
+async function saveAchievement(){
+  try{
+    const title=document.getElementById('a-title').value.trim();
+    if(!title){toast('Achievement title required.',false);return;}
+    const item={
+      icon:document.getElementById('a-icon').value.trim()||'🏆',
+      title,
+      subtitle:document.getElementById('a-subtitle').value.trim()||null,
+      description:document.getElementById('a-desc').value.trim()||null,
+      rarity:document.getElementById('a-rarity').value,
+      updated_at:new Date().toISOString()
+    };
+    if(state.editing.achievement){
+      const { error } = await supabaseClient.from(TABLES.highlights).update(item).eq('id', state.editing.achievement);
+      if(error) throw error;
+      toast('Achievement updated! ✓');
+    } else {
+      item.sort_order = state.data.highlights.length;
+      const { error } = await supabaseClient.from(TABLES.highlights).insert(item);
+      if(error) throw error;
+      toast('Achievement added! ✓');
+    }
+    resetAchievementForm();
+    await fetchHighlights();
+  }catch(err){
+    toast(err.message || 'Failed to save achievement.', false);
+  }
 }
-function delAchievement(id){ if(confirm('Delete achievement?')){ DB.deleteHighlight(id); toast('Deleted.'); renderAchievements(); if(state.editing.achievement===id) resetAchievementForm(); } }
+window.saveAchievement = saveAchievement;
+
+async function delAchievement(id){
+  if(!confirm('Delete achievement?')) return;
+  try{
+    const { error } = await supabaseClient.from(TABLES.highlights).delete().eq('id', id);
+    if(error) throw error;
+    toast('Deleted.');
+    if(state.editing.achievement===id) resetAchievementForm();
+    await fetchHighlights();
+  }catch(err){
+    toast(err.message || 'Failed to delete achievement.', false);
+  }
+}
+window.delAchievement = delAchievement;
 
 function renderCars(){
-  const items=DB.getCars(), el=document.getElementById('car-entries');
+  const items=state.data.cars, el=document.getElementById('car-entries');
   el.innerHTML=items.length?items.map(c=>`<div class="entry-row"><img class="entry-thumb" src="${c.coverImage}" alt="">
     <div class="entry-info"><div class="entry-name">${esc(c.name)}</div><div class="entry-meta">${esc(c.brand)} · ${esc(c.year||'—')} · ${esc(c.tag||'—')}</div></div>
     <div class="entry-actions"><button class="edit-btn" onclick="startEditCar('${c.id}')">Edit</button><button class="delete-btn" onclick="delCar('${c.id}')">Delete</button></div></div>`).join(''):'<div class="hint">No entries yet.</div>';
 }
+
 function renderSports(){
-  const items=DB.getSports(), el=document.getElementById('sport-entries');
+  const items=state.data.sports, el=document.getElementById('sport-entries');
   el.innerHTML=items.length?items.map(s=>`<div class="entry-row"><img class="entry-thumb" src="${s.coverImage}" alt="">
     <div class="entry-info"><div class="entry-name">${esc(s.name)}</div><div class="entry-meta">${esc(s.subtitle||'—')} · OVR ${esc(s.rating)} · ${(s.photos||[]).length} gallery photo(s) · ${(s.favPlayer?.photos||[]).length} player photo(s)</div></div>
     <div class="entry-actions"><button class="edit-btn" onclick="startEditSport('${s.id}')">Edit</button><button class="delete-btn" onclick="delSport('${s.id}')">Delete</button></div></div>`).join(''):'<div class="hint">No entries yet.</div>';
 }
+
 function renderStudio(){
-  const items=DB.getStudio(), el=document.getElementById('studio-entries');
+  const items=state.data.studio, el=document.getElementById('studio-entries');
   el.innerHTML=items.length?items.map(s=>`<div class="entry-row"><img class="entry-thumb" src="${s.coverImage}" alt="">
     <div class="entry-info"><div class="entry-name">${esc(s.title)}</div><div class="entry-meta">${esc(s.category||'—')} · ${(s.recordings||[]).length} recording(s)</div>
     <div class="sublist">${(s.recordings||[]).map(r=>`<div class="subitem"><div class="name">🎵 ${esc(r.name)}</div><button class="small-btn danger" onclick="delRecording('${s.id}','${r.id}')">Delete</button></div>`).join('')||'<div class="hint">No recordings yet.</div>'}</div></div>
     <div class="entry-actions"><button class="edit-btn" onclick="startEditStudio('${s.id}')">Edit Card</button><button class="delete-btn" onclick="delStudio('${s.id}')">Delete Card</button></div></div>`).join(''):'<div class="hint">No entries yet.</div>';
   populateStudioSelect();
 }
+
 function renderTravel(){
-  const items=DB.getTravel(), el=document.getElementById('travel-entries');
+  const items=state.data.travel, el=document.getElementById('travel-entries');
   el.innerHTML=items.length?items.map(t=>`<div class="entry-row"><img class="entry-thumb" src="${t.coverImage}" alt="">
     <div class="entry-info"><div class="entry-name">${esc(t.place)}</div><div class="entry-meta">${esc(t.country||'—')} · ${esc(t.year||'—')} · ${(t.photos||[]).length} photo(s)</div></div>
     <div class="entry-actions"><button class="edit-btn" onclick="startEditTravel('${t.id}')">Edit</button><button class="delete-btn" onclick="delTravel('${t.id}')">Delete</button></div></div>`).join(''):'<div class="hint">No entries yet.</div>';
 }
+
 function renderAchievements(){
-  const items=DB.getHighlights(), el=document.getElementById('achievement-entries');
+  const items=state.data.highlights, el=document.getElementById('achievement-entries');
   el.innerHTML=items.length?items.map(a=>`<div class="entry-row"><div class="entry-thumb-placeholder">${esc(a.icon||'🏆')}</div>
     <div class="entry-info"><div class="entry-name">${esc(a.title)}</div><div class="entry-meta">${esc(a.subtitle||'—')} · ${esc(a.rarity||'Common')}</div></div>
     <div class="entry-actions"><button class="edit-btn" onclick="startEditAchievement('${a.id}')">Edit</button><button class="delete-btn" onclick="delAchievement('${a.id}')">Delete</button></div></div>`).join(''):'<div class="hint">No achievements yet.</div>';
 }
 
-function renderAll(){ renderCars(); renderSports(); renderStudio(); renderTravel(); renderAchievements(); }
-
-function initAdmin(){
-  initStatRows();
-  loadProfileForm();
-  populateStudioSelect();
-  renderAll();
+async function initAdmin(){
+  try{
+    initStatRows();
+    await fetchAll();
+    populateStudioSelect();
+  }catch(err){
+    toast(err.message || 'Failed to load admin data.', false);
+  }
 }
-if(sessionStorage.getItem('admin_auth')==='1') initAdmin();
+
+async function bootstrap(){
+  const configured = !SUPABASE_URL.includes('PASTE_YOUR_SUPABASE') && !SUPABASE_ANON_KEY.includes('PASTE_YOUR_SUPABASE');
+  if(!configured){
+    showLogin();
+    document.getElementById('login-err').textContent='Set SUPABASE_URL and SUPABASE_ANON_KEY first.';
+    return;
+  }
+  const ok = await ensureAdminSession();
+  if(ok){
+    showAdmin();
+    await initAdmin();
+  }else{
+    showLogin();
+  }
+}
+
+bootstrap();
 </script>
+
 </body>
 </html>
